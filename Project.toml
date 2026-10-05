@@ -1,0 +1,27 @@
+name = "EffectiveSpinfoam"
+uuid = "c5b9296b-0b8a-4e46-a2a8-6c841f9c4b7b"
+authors = ["Dongxue Qu"]
+version = "0.1.0"
+
+[deps]
+Combinatorics = "861a8166-3701-5b0c-9a16-15d98fcdc6aa"
+GenericLinearAlgebra = "14197337-ba66-59df-a3e3-ca00e7dcff7a"
+LaTeXStrings = "b964fa9f-0449-5b57-a5c2-d3ea65f4040f"
+LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
+LorentzianSimplexSolver = "948bfc76-abbc-4c76-8113-2db06e2da03d"
+Plots = "91a5bcdd-55d7-5caf-9e0b-520d859cae80"
+Polynomials = "f27b6e38-b328-58d1-80ce-0feddd5e7a45"
+SymEngine = "123dc426-2d89-5057-bbad-38513e3affd8"
+Symbolics = "0c5d862f-8b57-4792-8d23-62f2024744c7"
+
+[sources]
+LorentzianSimplexSolver = {path = "packages/LorentzianSimplexSolver"}
+
+[compat]
+julia = "1.11, 1.12"
+
+[extras]
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[targets]
+test = ["Test"]

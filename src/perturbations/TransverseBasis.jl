@@ -1,78 +1,19 @@
 module TransverseBasis
 
 using LinearAlgebra
+using LorentzianSimplexSolver
 
 export compute_transverse_basis
 
 """
-    compute_transverse_basis(djdl; tol=1e-12)
+    compute_transverse_basis(dηdl)
 
-Compute a basis of vectors transverse to the Regge submanifold.
-
-Input
------
-dηdl :: Vector{Vector{T}}
-    dηdl[h][ℓ] = ∂ η_h / ∂ ℓ_ℓ
-
-Keyword
--------
-tol :: Real
-    Numerical cutoff for null vectors
-
-Returns
--------
-eList      :: Vector{Vector{T}}   # transverse basis vectors (length nh)
-eListHT    :: Matrix{T}            # transpose: nt × nh
-Pperp      :: Matrix{T}            # projector
+Return an orthonormal basis transverse to the Regge submanifold.
+The columns `e` satisfy `transpose(dηdl) * e = 0`.
 """
-function compute_transverse_basis(dηdl::Matrix{T}, tol) where {T<:Real}
-
-    nh, nl = size(dηdl)
-    # ------------------------------------------------------------
-    # Projector
-    # ------------------------------------------------------------
-    J = dηdl
-    G = transpose(J) * J
-    Pperp = Matrix{T}(I, nh, nh) - J * pinv(G; atol=tol, rtol=tol) * transpose(J)
-
-    # ------------------------------------------------------------
-    # Step 1: standard basis
-    # ------------------------------------------------------------
-    stdBasis = [Matrix{T}(I, nh, nh)[:, i] for i in 1:nh]
-
-    # ------------------------------------------------------------
-    # Step 2: eRaw = Pperp * basis vectors
-    # ------------------------------------------------------------
-    eRaw = [Pperp * v for v in stdBasis]
-
-    # ------------------------------------------------------------
-    # Step 3: Orthogonalize (Mathematica style)
-    # ------------------------------------------------------------
-    eListRaw = Vector{Vector{T}}()
-
-    for v in eRaw
-        w = copy(v)
-
-        for u in eListRaw
-            w -= (dot(u, w)) * u
-        end
-
-        if norm(w) > tol
-            push!(eListRaw, w / norm(w))
-        end
-    end
-
-    # ------------------------------------------------------------
-    # Step 4: Select Norm > 0.5
-    # ------------------------------------------------------------
-    eList = [v for v in eListRaw if norm(v) > 0.5]
-
-    # ------------------------------------------------------------
-    # Step 5: Transpose
-    # ------------------------------------------------------------
-    eListHT = hcat(eList...)   # (nh × nt)
-
-    return eListHT
+function compute_transverse_basis(dηdl::Matrix{T}) where {T<:Real}
+    tol = T(LorentzianSimplexSolver.PrecisionUtils.get_tolerance())
+    return nullspace(transpose(dηdl); atol=tol, rtol=tol)
 end
 
 end # module
