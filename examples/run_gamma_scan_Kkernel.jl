@@ -1,4 +1,4 @@
-# Scan gamma values and plot the hinge-space correction kernel K.
+# Scan gamma values and plot the hypercube hinge-space correction kernel K.
 
 using Pkg
 Pkg.activate(normpath(joinpath(@__DIR__, "..")); io=devnull)
@@ -10,14 +10,17 @@ using LorentzianSimplexSolver
 using Plots
 using LaTeXStrings
 using Polynomials
+using Printf
 
 ScalarT = Float64
 LorentzianSimplexSolver.configure_precision!(ScalarT; precision=64)
 
 gamma_values = ScalarT(10.0) .^ range(ScalarT(-6), ScalarT(0), length=50)
-figure_file = normpath(joinpath(@__DIR__, "..", "results", "gamma_scan_15move_refinement.png"))
-figure_title = L"\mathrm{1-5\,\,move\,\,refinement}"
-mkpath(dirname(figure_file))
+result_directory = normpath(joinpath(@__DIR__, "..", "results"))
+figure_file = joinpath(result_directory, "gamma_scan_hypercube.pdf")
+data_file = joinpath(result_directory, "gamma_scan_hypercube.txt")
+figure_title = "Hypercube"
+mkpath(result_directory)
 
 function plot_gamma_scan(
     figure_file,
@@ -35,44 +38,72 @@ function plot_gamma_scan(
     intercept, slope = coeffs(power_law)
     fit_curve = 10 .^ (intercept .+ slope .* log10.(gamma_values))
 
+    # Match the action-difference scan plots.
+    show_title = true
+    legend_position = :bottomright
+
     figure = plot(
         gamma_values,
         scaled_norms;
+        color=:blue,
         marker=:circle,
+        markersize=5,
+        linewidth=1.6,
         xscale=:log10,
         yscale=:log10,
         xlabel=L"\gamma",
         ylabel=L"\gamma^2\|K\|",
-        title=figure_title,
+        title=show_title ? figure_title : "",
         label="numerical result",
-        legend=:bottomright,
+        legend=legend_position,
+        size=(600, 400),
+        left_margin=2 * Plots.PlotMeasures.mm,
+        right_margin=4 * Plots.PlotMeasures.mm,
+        bottom_margin=2 * Plots.PlotMeasures.mm,
+        top_margin=4 * Plots.PlotMeasures.mm,
+        titlefontsize=16,
+        guidefontsize=15,
+        tickfontsize=12,
+        legendfontsize=9,
+        legend_columns=1,
+        legend_background_color=:white,
+        legend_foreground_color=:gray30,
+        grid=true,
+        gridalpha=0.18,
     )
     plot!(
         figure,
         gamma_values,
         fit_curve;
-        lw=2,
+        color=:orange,
+        linewidth=1.5,
         linestyle=:dash,
-        label="power-law fit (slope = $(round(slope, digits=6)))",
+        label=@sprintf("power-law fit (p = %.4f)", slope),
     )
     savefig(figure, figure_file)
+    display(figure)
     return slope
 end
 
-simplices = [[2,3,4,6,7],[1,3,4,6,7],[1,2,4,6,7],[1,2,3,6,7],[1,2,3,4,7],[2,3,5,6,8],[1,3,5,6,8],[1,2,5,6,8],[1,2,3,6,8],[1,2,3,5,8],[2,4,5,6,9],[1,4,5,6,9],[1,2,5,6,9],[1,2,4,6,9],[1,2,4,5,9],[3,4,5,6,10],[1,4,5,6,10],[1,3,5,6,10],[1,3,4,6,10],[1,3,4,5,10],[3,4,5,6,11],[2,4,5,6,11],[2,3,5,6,11],[2,3,4,6,11],[2,3,4,5,11]]
+simplices = [[1, 9, 13, 15, 16],[1, 9, 13, 14, 16],[1, 9, 11, 15, 16],[1, 9, 11, 12, 16],[1, 9, 10, 14, 16],[1, 9, 10, 12, 16],[1, 5, 13, 15, 16],[1, 5, 13, 14, 16],[1, 5, 7, 15, 16],[1, 5, 7, 8, 16],[1, 5, 6, 14, 16],[1, 5, 6, 8, 16],[1, 3, 11, 15, 16],[1, 3, 11, 12, 16],[1, 3, 7, 15, 16],[1, 3, 7, 8, 16],[1, 3, 4, 12, 16],[1, 3, 4, 8, 16],[1, 2, 10, 14, 16],[1, 2, 10, 12, 16],[1, 2, 6, 14, 16],[1, 2, 6, 8, 16],[1, 2, 4, 12, 16],[1, 2, 4, 8, 16]]
 
 coords_lines = [
-"0, 0, 0, 0",
-"0, -2.7745276335252114, -0.9809436521275706, -1.6990442448471226",
-"0, 0, 0, -3.398088489694245",
-"-0.24028114141347542, -0.6936319083813028, -0.9809436521275706, -1.6990442448471226",
-"0, 0, -2.942830956382712, -1.6990442448471226",
-"-0.068, -0.27, -0.5, -1.3",
-"-0.06165622828269508, -0.7476319083813029, -0.49237746085102824, -1.6192353958776982",
-"-0.013600000000000001, -0.6089055267050423, -0.8847549217020566, -1.6192353958776982",
-"-0.05471634704156723, -0.6634799624836852, -1.2905133626305172, -1.3266576479993824",
-"-0.05996263164968173, -0.18743250119993968, -0.8604521717798855, -1.5747576871100133",
-"-0.0423034122998675, -0.5046526423930288, -1.0289336294868097, -2.25080216236223"
+    "0, 0, 0, 0",
+    "0, 0, 0, 1",
+    "0, 0, 1, 0",
+    "0, 0, 1, 1",
+    "0, 1, 0, 0",
+    "0, 1, 0, 1",
+    "0, 1, 1, 0",
+    "0, 1, 1, 1",
+    "0.5, 1.5, 2.25, 3.0",
+    "0.5, 1.5, 2.25, 4.0",
+    "0.5, 1.5, 3.25, 3.0",
+    "0.5, 1.5, 3.25, 4.0",
+    "0.5, 2.5, 2.25, 3.0",
+    "0.5, 2.5, 2.25, 4.0",
+    "0.5, 2.5, 3.25, 3.0",
+    "0.5, 2.5, 3.25, 4.0",
 ]
 
 vertex_coords = build_vertex_coordinates(
@@ -115,5 +146,19 @@ slope = plot_gamma_scan(
     scaled_K_kernel_norm_list,
     figure_title,
 )
+open(data_file, "w") do io
+    println(io, "# geometry = hypercube")
+    println(io, "# scalar type = Float64")
+    println(io, "# fitted interval = $(first(gamma_values)) to $(gamma_values[20])")
+    println(io, "# fitted slope = $slope")
+    println(io, "gamma  opnorm_K  gamma2_opnorm_K")
+    for i in eachindex(gamma_values)
+        println(
+            io,
+            "$(gamma_values[i])  $(K_kernel_norm_list[i])  $(scaled_K_kernel_norm_list[i])",
+        )
+    end
+end
 println("Saved plot to $figure_file.")
-println("Small-gamma fitted slope = $(round(slope, digits=6)).")
+println("Saved scan data to $data_file.")
+@printf("Small-gamma fitted slope = %.4f.\n", slope)

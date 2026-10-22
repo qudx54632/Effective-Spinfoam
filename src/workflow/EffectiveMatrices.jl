@@ -4,8 +4,8 @@ The expensive geometry and symbolic derivatives in `data` are reused.
 """
 function compute_effective_matrices(data, gamma_value; blocks=nothing)
     blocks = blocks === nothing ? evaluate_effective_blocks(data, gamma_value) : blocks
-    (; T, critical_values, log_hessian, h_frak, inv_h_frak, dηdl, dlogEh_dX) = blocks
-    e_hat = TransverseBasis.compute_transverse_basis(dηdl)
+    (; T, critical_values, log_hessian, h_frak, inv_h_frak, dηdl, dηdl_bulk, dlogEh_dX) = blocks
+    e_hat = TransverseBasis.compute_transverse_basis(dηdl_bulk)
     V = transpose(dlogEh_dX)
 
     eta_values = [
@@ -39,6 +39,7 @@ function compute_effective_matrices(data, gamma_value; blocks=nothing)
         h_frak=h_frak,
         inv_h_frak=inv_h_frak,
         dηdl=dηdl,
+        dηdl_bulk=dηdl_bulk,
         dkb_dl=blocks.dkb_dl,
         d2kb_dldl=blocks.d2kb_dldl,
         transverse_basis=e_hat,
@@ -92,6 +93,7 @@ function compute_effective_terms(data, gamma_value)
         h_frak=matrices.h_frak,
         inv_h_frak=matrices.inv_h_frak,
         dηdl=matrices.dηdl,
+        dηdl_bulk=matrices.dηdl_bulk,
         dkb_dl=matrices.dkb_dl,
         d2kb_dldl=matrices.d2kb_dldl,
         transverse_basis=matrices.transverse_basis,

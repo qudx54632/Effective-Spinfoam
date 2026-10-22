@@ -19,7 +19,8 @@ function prepare_regge_transverse_split(
         T,
         gamma,
     )
-    transverse_basis = TransverseBasis.compute_transverse_basis(dηdl)
+    dηdl_bulk = dηdl[:, 1:length(bulk_edges)]
+    transverse_basis = TransverseBasis.compute_transverse_basis(dηdl_bulk)
 
     return (
         bulk_faces=bulk_faces,
@@ -28,6 +29,7 @@ function prepare_regge_transverse_split(
         selected_boundary_edges=selected_boundary_edges,
         perturb_edges=perturb_edges,
         dηdl=dηdl,
+        dηdl_bulk=dηdl_bulk,
         transverse_basis=transverse_basis,
     )
 end

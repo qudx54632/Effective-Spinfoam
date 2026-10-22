@@ -115,6 +115,7 @@ function evaluate_effective_blocks(data, gamma_value)
         T,
         gamma_value,
     )
+    dηdl_bulk = dηdl[:, 1:length(data.bulk_edges)]
     dlogEh_dX = LogFaceDerivatives.evaluate_dlogEh_dX(
         data.dlogEh_dX_symbols,
         data.geom,
@@ -131,6 +132,7 @@ function evaluate_effective_blocks(data, gamma_value)
         h_frak=h_frak,
         inv_h_frak=inv(h_frak),
         dηdl=dηdl,
+        dηdl_bulk=dηdl_bulk,
         dlogEh_dX=dlogEh_dX,
         dkb_dl=dkb_dl,
         d2kb_dldl=d2kb_dldl,

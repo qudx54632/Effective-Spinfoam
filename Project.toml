@@ -18,6 +18,14 @@ Symbolics = "0c5d862f-8b57-4792-8d23-62f2024744c7"
 LorentzianSimplexSolver = {path = "packages/LorentzianSimplexSolver"}
 
 [compat]
+Combinatorics = "1"
+GenericLinearAlgebra = "0.3"
+LaTeXStrings = "1"
+LorentzianSimplexSolver = "0.1.1"
+Plots = "1"
+Polynomials = "4"
+SymEngine = "0.13"
+Symbolics = "6"
 julia = "1.11, 1.12"
 
 [extras]

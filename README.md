@@ -1,36 +1,42 @@
-# Effective Spinfoam
+# EffectiveSpinfoam
 
-`EffectiveSpinfoam` is a Julia package for the numerical effective Spinfoam action on Lorentzian Regge geometries. It constructs the Regge and non-Regge quadratic terms in a chosen length-perturbation space, evaluates the hinge-space correction kernel `K_kernel`, and compares the analytic expansion with the exact action evaluated at a fixed-length complex critical point.
+`EffectiveSpinfoam.jl` is a Julia package accompanying the numerical study of the effective EPRL spinfoam action. It computes the Regge and non-Regge quadratic terms for selected length perturbations, evaluates the hinge-space kernel, and compares the quadratic expansion with the exact action at a complex critical point.
 
-The package uses the local `LorentzianSimplexSolver` package in `packages/LorentzianSimplexSolver` for Lorentzian simplex geometry, face matching, gauge fixing, Regge data, symbolic Spinfoam actions, equations of motion, and Hessians. The two packages are kept together so that this repository can be used from a local clone without a sibling checkout.
+`EffectiveSpinfoam` depends on [`LorentzianSimplexSolver`](https://github.com/qudx54632/LorentzianSimplexSolver) for Lorentzian geometry reconstruction, the Regge and EPRL spinfoam actions, equations of motion, Hessians, and complex critical-point calculations. For reproducibility, this repository includes the exact solver source used for the paper in `packages/LorentzianSimplexSolver`. The `[sources]` entry in `Project.toml` resolves the dependency to this local copy, so the `packages/LorentzianSimplexSolver` directory must remain in a cloned repository.
 
-## Two calculations
+## Requirements and installation
 
-The analytic effective-action calculation and the complex-critical-point calculation use two different forms of the bulk action.
+The project requires Julia 1.11 or later and has been tested locally with Julia 1.12.3. Clone the repository and instantiate its environment:
 
-The analytic workflow uses the logarithmic bulk action, selected by `bulk_sum_form=false`:
+```bash
+git clone https://github.com/qudx54632/Spinfoam-effective-project.git
+cd Spinfoam-effective-project
+julia --project=. -e 'using Pkg; Pkg.instantiate()'
+```
+
+The committed `Manifest.toml` records the Julia 1.12.3 environment used for the paper. With another Julia minor version, run `julia --project=. -e 'using Pkg; Pkg.resolve(); Pkg.instantiate()'` to update the environment for that version.
+
+Check that both packages load:
+
+```bash
+julia --project=. -e 'using EffectiveSpinfoam, LorentzianSimplexSolver'
+```
+
+The `LorentzianSimplexSolver` package can also be installed and used independently from its GitHub repository; see its README for that workflow.
+
+## Action conventions
+
+The analytic effective-action workflow uses the logarithmic bulk form, selected explicitly with `bulk_sum_form=false`:
 
 ```julia
-solver = build_solver_data(
-    simplices,
-    vertex_coords;
-    bulk_sum_form=false,
-)
+using EffectiveSpinfoam, LorentzianSimplexSolver
+
+solver = build_solver_data(simplices, vertex_coords; bulk_sum_form=false)
 data = build_effective_data(solver, simplices, vertex_coords)
 terms = compute_effective_terms(data, gamma)
 ```
 
-The returned `terms` contains the Regge terms, the non-Regge correction, and the kernel:
-
-```julia
-terms.linear_regge
-terms.quadratic_regge
-terms.non_regge_correction
-terms.spinfoam_quadratic
-terms.K_kernel
-```
-
-The complex-critical-point workflow uses the exact bulk action, selected by `bulk_sum_form=true`. It reconstructs the perturbed local simplex coordinates, fixes the selected lengths, solves the complex equations of motion, and evaluates the action difference:
+The direct complex critical-point calculation uses the exact bulk form, selected with `bulk_sum_form=true`:
 
 ```julia
 data = prepare_action_difference(
@@ -41,106 +47,72 @@ data = prepare_action_difference(
     bulk_sum_form=true,
     gamma=gamma,
 )
-result = solve_action_difference(
-    data,
-    gamma;
-    tol=5e-14,
-    maxiter=30,
-)
+result = solve_action_difference(data, gamma; tol=5e-14, maxiter=30)
 ```
 
-The numerical result is stored in `result.action_difference`. The exact action at the perturbed complex critical point is `result.complex_action`, the flat reference action is `result.flat_action`, and the final fixed-length equation-of-motion residual is `maximum(abs.(result.residual))`.
+These snippets use the simplices, coordinates, `gamma`, and perturbations supplied in the examples below. The analytic result is obtained by contracting `terms.linear_regge` with the length-perturbation vector and `terms.quadratic_regge + terms.non_regge_correction` with two copies of that vector. The direct action difference is `result.action_difference`. Check `result.converged` before using the result. The field `result.residual` contains the complex equations-of-motion residuals.
 
-## Installation from a local clone
+## Reproducing the calculations
 
-This repository is intended to be run from a local clone. From the package root, instantiate the project with:
+Run the following commands from the repository root. They overwrite the corresponding generated files in `results/`.
+
+| Script | Calculation and output |
+| --- | --- |
+| `examples/run_gamma_scan_Kkernel.jl` | Hypercube scan of `gamma^2 * \|K\|`; writes a PDF and the scan data to `results/`. |
+| `examples/action_difference_table.jl` | Double-Delta3 and 1-5 move comparisons at `gamma=1` and `delta_l=1e-5`; writes `results/action_difference_table.txt`. |
+| `examples/action_difference_uniform_direction_scan.jl` | Uniform perturbation directions for Double-Delta3 and 1-5 move at `gamma=1` and `gamma=0.01`; writes PDF plots and text data to `results/`. |
+| `examples/action_difference_nonuniform_direction_scan.jl` | Two non-uniform bulk perturbation profiles for the 1-5 move at `gamma=1`; writes PDF plots and text data to `results/`. |
+
+For example, run one calculation with:
 
 ```bash
-julia --project=. -e 'using Pkg; Pkg.instantiate()'
+julia --project=. examples/action_difference_uniform_direction_scan.jl
 ```
 
-Then load the package with:
+The tracked files in `results/` are the numerical data and figures accompanying the paper. The uniform script produces four PDFs and four text files. The non-uniform script produces two PDFs and two text files. Both use 160-bit `BigFloat` arithmetic and fit over `1e-6 <= delta_L <= 1e-4`. The table script uses `Float64`.
 
-```julia
-using EffectiveSpinfoam
-using LorentzianSimplexSolver
-```
+The gamma-scan script currently contains the hypercube input. The other tracked gamma-scan PDFs come from earlier runs with different simplex and coordinate inputs. To scan another geometry, change `simplices`, `coords_lines`, the title, and both output filenames in that script.
 
-The path dependency in `Project.toml` points to `packages/LorentzianSimplexSolver`, so the whole repository must be kept together.
+## Precision and input data
 
-## Input and precision
-
-Coordinates use the order `(t, x, y, z)`. For a flat geometry, provide one coordinate vector for each global vertex. The helper `build_vertex_coordinates` reads coordinate strings into the selected scalar type:
-
-```julia
-vertex_coords = build_vertex_coordinates(simplices, coords_lines, Float64)
-```
-
-For a curved Regge geometry, provide five local coordinate vectors for every 4-simplex, in the same order as the five vertex labels in that simplex. Every 4-simplex is flat internally, but the complete triangulation need not have one global Minkowski embedding.
-
-Set the scalar type before constructing coordinates or numerical values:
+Coordinates use the order `(t, x, y, z)`. A flat geometry takes one coordinate vector per global vertex. A curved Regge geometry takes five local coordinate vectors per 4-simplex, ordered as the vertex labels in that simplex. Configure the numeric type before creating coordinates or perturbations:
 
 ```julia
 configure_precision!(Float64)
-configure_precision!(BigFloat; precision=256)
+configure_precision!(BigFloat; precision=160)
 ```
 
-Use the same scalar type for `gamma` and for the length perturbations. In `prepare_action_difference`, `delta_lengths` is ordered as all bulk edges followed by the selected boundary edge or edges. The exact order is available as `data.perturb_edges`.
+Choose one precision setting before constructing the input. For `BigFloat`, parse decimal strings, for example `BigFloat("0.01")`, to avoid first rounding the input to `Float64`.
 
-Flat and curved coordinate examples are collected in `packages/LorentzianSimplexSolver/examples/example-complex.txt`.
-
-## Examples
-
-Run commands from the package root.
-
-```bash
-julia --project=. examples/analytic_action_difference.jl
-julia --project=. examples/complex_action_difference.jl
-julia --project=. examples/action_difference_table.jl
-```
-
-`analytic_action_difference.jl` evaluates the analytic linear and quadratic terms for a prescribed length perturbation. `complex_action_difference.jl` evaluates the exact action difference at the corresponding complex critical point. `action_difference_table.jl` compares the two results for the double-Delta3 and 1-5 examples, including bulk-only, boundary-only, and simultaneous bulk-and-boundary perturbations.
-
-The two scan scripts produce the remainder plots used in the numerical checks:
-
-```bash
-julia --project=. examples/double_delta3_action_difference_scan.jl
-julia --project=. examples/one_five_action_difference_scan.jl
-```
-
-The script `examples/run_gamma_scan_Kkernel.jl` scans `gamma` for the geometry and coordinates defined in that file and saves the plot of `gamma^2 * ||K||` in `results/`. To use another triangulation, replace the simplex and coordinate data in the script.
+Use the same numeric type for coordinates, `gamma`, and length perturbations. The analytic perturbation order is stored in `data.perturb_edges`. For the object returned by `prepare_action_difference`, the order is stored in `data.split.perturb_edges`. Both list the bulk edges and selected boundary edge.
 
 ## Tests
 
-Run the package test from the package root:
+Run the package tests from the repository root:
 
 ```bash
-julia --project=. test/runtests.jl
+julia --project=. -e 'using Pkg; Pkg.test()'
 ```
 
-The test constructs the 1-5 flat geometry, builds the analytic effective-action data, and checks the kernel dimensions, finite numerical values, and decomposition of the quadratic Spinfoam term.
+The current test suite checks the analytic 1-5 move workflow, transverse-basis dimensions and orthogonality, finite kernel values, and the decomposition of the quadratic spinfoam term. The long scans and plotting scripts are run separately.
+
+To run tests from an existing Julia session, activate the repository first:
+
+```julia
+using Pkg
+Pkg.activate(".")  # Run from the repository root.
+include("test/runtests.jl")
+```
 
 ## Repository layout
 
 ```text
 Project.toml                         package environment
-Manifest.toml                        resolved local environment
-src/                                EffectiveSpinfoam source code
-  EffectiveSpinfoam.jl               public package entry point
-  workflow/                           public analytic workflow
-  derivatives/                        area, face, and angle derivatives
-  perturbations/                      Regge/transverse perturbation data
-  effective_action/                   fixed-length complex action workflow
-  geometry/                           local coordinate reconstruction
-packages/LorentzianSimplexSolver/    local geometry and Spinfoam solver package
-examples/                            runnable numerical examples and scans
-notebooks/                            research notebooks
+Manifest.toml                        resolved paper environment
+src/                                 EffectiveSpinfoam source
+packages/LorentzianSimplexSolver/    local source dependency
+examples/                            paper calculation scripts
+notebooks/                           exploratory calculations
 test/                                package tests
-results/                             generated numerical data and figures
+results/                             paper figures and numerical data
 ```
-
-The files in `results/` are output artifacts and are not required for loading the package. The core public entry point is `src/EffectiveSpinfoam.jl`; the lower-level files under `src/` are included by the package and are not meant to be loaded individually.
-
-## Scope
-
-The package is intended for numerical studies of Lorentzian Regge geometries, effective Spinfoam corrections, and complex critical points. It is a research package rather than a general-purpose geometry library.

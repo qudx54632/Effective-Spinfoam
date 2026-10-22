@@ -1,6 +1,3 @@
-using Pkg
-Pkg.activate(normpath(joinpath(@__DIR__, "..")); io=devnull)
-
 using Test
 using EffectiveSpinfoam
 using LorentzianSimplexSolver
@@ -44,9 +41,18 @@ using LorentzianSimplexSolver
     result = compute_effective_terms(data, ScalarT(1.0))
 
     number_of_bulk_faces = length(data.eta_symbols)
+    number_of_bulk_edges = length(data.bulk_edges)
 
     @test solver.bulk_sum_form == false
     @test size(result.K_kernel) == (number_of_bulk_faces, number_of_bulk_faces)
+    @test size(result.dηdl_bulk) == (number_of_bulk_faces, number_of_bulk_edges)
+    @test size(result.transverse_basis, 2) == number_of_bulk_faces - number_of_bulk_edges
+    @test isapprox(
+        transpose(result.dηdl_bulk) * result.transverse_basis,
+        zeros(number_of_bulk_edges, number_of_bulk_faces - number_of_bulk_edges);
+        atol=1e-12,
+        rtol=0,
+    )
     @test all(isfinite, result.K_kernel)
     @test all(isfinite, result.linear_regge)
     @test all(isfinite, result.quadratic_regge)
